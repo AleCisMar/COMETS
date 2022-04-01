@@ -1,0 +1,693 @@
+#!/bin/bash
+
+#################### USAGE ####################
+
+usage () {
+	echo
+	echo "COMETS (COmpare METagenomeS)"
+	echo
+	echo "Usage:"
+	echo "   Starting from fastp quality filtering of raw reads:"
+	echo
+	echo "                                                     comets [-z INTEGER] [-d path/to/kaiju_db.fmi] -f pe|se|pe_se -g Bacteria|Archaea|Eukaryota|Viruses"
+	echo
+	echo "   Starting from kaiju taxonomic classification of quality filtered reads:"
+	echo
+	echo "                                                     comets [-z INTEGER] [-d path/to/kaiju_db.fmi] -k pe|se|pe_se -g Bacteria|Archaea|Eukaryota|Viruses"
+	echo
+	echo "   Starting from kaiju2table processing of kaiju.out files:"
+	echo
+	echo "                                                     comets -t pe|se|pe_se -g Bacteria|Archaea|Eukaryota|Viruses"
+	echo
+	echo "   Starting from taxonomic group tables filtering:"
+	echo
+	echo "                                                     comets -g Bacteria|Archaea|Eukaryota|Viruses"
+	echo
+	echo "Help:"
+	echo "   -h"
+	echo
+	echo "Main arguments:"
+	echo "   -f STRING   fastp mode  Options: pe|se|pe_se|off - Example names for input paired end files: sample1_1.fastq.gz, sample1_2.fastq.gz, sample2_1.fastq.gz, sample2_2.fastq.gz" 
+	echo "                                                      Example names for input single end files: sample1.fastq.gz, sample2.fastq.gz"
+	echo "                                                      pe - process ONLY paired end files"
+	echo "                                                      se - process ONLY single end files"
+	echo "                                                      pe_se - proces paired end AND single end files"
+	echo "                                                      Will perform the whole process starting with fastp quality filter with deduplication of FASTQ data"
+	echo "                                                      -z and -d are optional arguments for the taxonomic classification step" 
+	echo "                                                      Example fastp paired end output files: paired_end/fastp/sample1_1.fastp.fastq.gz, paired_end/fastp/sample1_2.fastp.fastq.gz"
+	echo "                                                      Example fastp single end output files: single_end/fastp/sample1.fastp.gz, single_end/fastp/sample2.fastp.gz"
+	echo "                                                      See https://github.com/OpenGene/fastp for fastp details"
+	echo
+	echo "   -k STRING   kaiju mode  Options: pe|se|pe_se|off - Input paired end files example: paired_end/fastp/sample1_1.fastp.fastq.gz, paired_end/fastp/sample1_2.fastp.fastq.gz"
+	echo "                                                      Input single end files example: single_end/fastp/sample1.fastp.gz, single_end/fastp/sample2.fastp.gz"
+	echo "                                                      pe - process ONLY paired end files"
+	echo "                                                      se - process ONLY single end files"
+	echo "                                                      pe_se - proces paired end AND single end files"
+	echo "                                                      Will perform the whole process starting from kaiju (kaiju-multi) taxonomic classification"
+	echo "                                                      -z and -d are optional arguments for the taxonomic classification step"
+	echo "                                                      Example kaiju output files: paired_end/fastp/kaiju/sample1.kaiju.out, single_end/fastp/kaiju/sample1.kaiju.out"
+	echo "                                                      See https://github.com/bioinformatics-centre/kaiju for kaiju details"
+	echo
+	echo "   -t STRING   kaiju2table  Options: on - Input file example: paired_end/fastp/kaiju/sample1.kaiju.out, single_end/fastp/kaiju/sample1.kaiju.out"
+	echo "                                          pe - process ONLY paired end files"
+	echo "                                          se - process ONLY single end files"
+	echo "                                          pe_se - proces paired end AND single end files"
+	echo "                                          Will perform the whole process starting from kaiju2table processing of kaiju.out files to obtain classification summary tables"
+	echo "                                          Output files will be palced in a separate kaiju2table directory: kaiju2table/sample1.tsv, kaiju2table/sample2.tsv"
+	echo
+	echo "   -g STRING   taxonomic group tables  Options: Bacteria|Archaea|Eukaryota|Viruses - Input file example: kaiju2table/sample1.kaiju.tsv, kaiju2table/sample2.kaiju.tsv"
+	echo "                                                                                     Bacteria - filter data to obtain bacteria tax-id, phylum, class, order, family, genus and species tables"
+	echo "                                                                                     Archaea - filter data to obtain archaea tax-id, phylum, class, order, family, genus and species tables"
+	echo "                                                                                     Eukaryota - filter data to obtain eukaryota tax-id, phylum, class, order, family, genus and species tables"
+	echo "                                                                                     Viruses - filter data to obtain viruses tax-id, phylum, class, order, family, genus and species tables"
+	echo "                                                                                     Example output files: kaiju2table/Viruses/phylum/Viruses_phylum_abundance_table.txt"
+	echo
+	echo "Optional arguments:"
+	echo "   -z INTEGER  number of parallel threads for kaiju taxonomic classification. Optional if -k is NOT off. Recomendation is 25 (default: 1)"
+	echo "   -d STRING   kaiju database. Optional if -k is NOT off (default: kaiju_db_nr_euk.fmi)"
+}
+
+#################### OPTIONS ####################
+
+if [[ $# -eq 0 ]] ; then
+	echo "ERROR: no arguments provided"
+    usage
+    exit 0
+fi
+
+echo "** Settings **"
+while :; do
+	case $1 in
+		-h)
+			echo "-h help requested"
+			echo "Printing help..."
+			usage
+			exit 1
+			;;
+		-z)
+			if [[ -n "$2" ]]; then
+				z=$2; shift; shift
+				if $(echo "$z" | grep -vqE '^[0-9]+$'); then
+					echo "ERROR: '$z' is not a valid option for -z. Must be integer"
+					usage
+					exit 1
+				fi
+			else
+				echo "ERROR: -z needs an option"
+				usage
+				exit 1
+			fi
+			;;
+		-d)
+			if [[ -n "$2" ]]; then
+				kaiju_db=$2; shift; shift
+			else
+				echo "ERROR: -d needs an option"
+				usage
+				exit 1
+			fi
+			;;
+		-f)
+			if [[ -n "$2" ]]; then
+				f=$2; shift; shift
+				if [[ "$f" = "pe" ]] || [[ "$f" = "se" ]] || [[ "$f" = "pe_se" ]]; then
+					echo "-f is set to '$f'"
+					echo "Making sure fastp is installed..."
+					if [[ $(find ~/ -name fastp | grep -w bin | head -n1) ]]; then
+						fastp=$(find ~/ -name fastp | grep -w bin | head -n1)
+						echo "fastp found! Location: $fastp"
+					else
+						echo "ERROR: unable to find required package fastp. The latest version may be needed: wget http://opengene.org/fastp/fastp"
+						exit 1
+					fi
+					echo "Making sure kaiju-multi is installed..."
+					if [[ $(find ~/ -name kaiju-multi | grep -w bin | head -n1) ]]; then
+						kaiju=$(find ~/ -name kaiju-multi | grep -w bin | head -n1)
+						echo "kaiju found! Location: $kaiju"
+					else
+						echo "ERROR: unable to find required package kaiju-multi"
+						exit 1
+					fi
+					if [[ -z ${z+x} ]]; then
+						echo "-z is unset. Will use default=1"
+						z=1
+					else
+						echo "$z parallel threads requested"
+					fi
+					if [[ -z ${kaiju_db+x} ]]; then
+						echo "-d is unset. Will use default=kaiju_db_nr_euk.fmi"
+						echo "looking for kaiju_db_nr_euk.fmi..."
+							if [[ $(find ~/ -name kaiju_db_nr_euk.fmi | head -n1) ]]; then
+								kaiju_db=$(find ~/ -name kaiju_db_nr_euk.fmi | head -n1)
+								echo "kaiju_db_nr_euk.fmi found! Location: $kaiju_db"
+							else
+								echo "ERROR: unable to find kaiju_db_nr_euk.fmi"
+								exit 1
+							fi
+					else
+						echo "kaiju database is set to: $kaiju_db"
+					fi
+					echo "kaiju also requires a nodes.dmp file. Looking for it..."
+					if [[ $(find ~/ -name nodes.dmp | head -n1) ]]; then
+						nodes=$(find ~/ -name nodes.dmp | head -n1)
+						echo "nodes.dmp found! Location: $nodes"
+					else
+						echo "ERROR: unable to find nodes.dmp"
+						exit 1
+					fi
+					echo "Making sure kaiju2table is installed..."
+					if [[ $(find ~/ -name kaiju2table | grep -w bin | head -n1) ]]; then
+						kaiju2table=$(find ~/ -name kaiju2table | grep -w bin | head -n1)
+						echo "kaiju2table found! Location: $kaiju2table"
+					else
+						echo "ERROR: unable to find required package kaiju2table"
+						exit 1
+					fi
+					echo "kaiju2table requires a names.dmp file. Looking for it..."
+					if [[ $(find ~/ -name names.dmp | head -n1) ]]; then
+						names=$(find ~/ -name names.dmp | head -n1)
+						echo "names.dmp found! Location: $names"
+					else
+						echo "ERROR: unable to find names.dmp"
+						exit 1
+					fi
+				else
+					echo "ERROR: '$f' is not a valid option for -f"
+					usage
+					exit 1
+				fi
+			else
+				echo "ERROR: -f needs an option"
+				usage
+				exit 1
+			fi
+			;;
+		-k)
+			if [[ -n "$2" ]]; then
+				k=$2; shift; shift
+				if [[ "$k" = "pe" ]] || [[ "$k" = "se" ]] || [[ "$k" = "pe_se" ]]; then
+					if [[ -z ${f+x} ]]; then
+						echo "-f is unset. Fastp quality control will be skipped"
+					fi
+					echo "-k is set to '$k'"
+					echo "Making sure kaiju-multi is installed..."
+					if [[ $(find ~/ -name kaiju-multi | grep -w bin | head -n1) ]]; then
+						kaiju=$(find ~/ -name kaiju-multi | grep -w bin | head -n1)
+						echo "kaiju found! Location: $kaiju"
+					else
+						echo "ERROR: unable to find required package kaiju-multi"
+						exit 1
+					fi
+					if [[ -z ${z+x} ]]; then
+						echo "-z is unset. Will use default=1"
+						z=1
+					else
+						echo "$z parallel threads requested"
+					fi
+					if [[ -z ${kaiju_db+x} ]]; then
+						echo "-d is unset. Will use default=kaiju_db_nr_euk.fmi"
+						echo "looking for kaiju_db_nr_euk.fmi..."
+							if [[ $(find ~/ -name kaiju_db_nr_euk.fmi | head -n1) ]]; then
+								kaiju_db=$(find ~/ -name kaiju_db_nr_euk.fmi | head -n1)
+								echo "kaiju_db_nr_euk.fmi found! Location: $kaiju_db"
+							else
+								echo "ERROR: unable to find kaiju_db_nr_euk.fmi"
+								exit 1
+							fi
+					else
+						echo "kaiju database is set to: $kaiju_db"
+					fi
+					echo "kaiju also requires a nodes.dmp file. Looking for it..."
+					if [[ $(find ~/ -name nodes.dmp | head -n1) ]]; then
+						nodes=$(find ~/ -name nodes.dmp | head -n1)
+						echo "nodes.dmp found! Location: $nodes"
+					else
+						echo "ERROR: unable to find nodes.dmp"
+						exit 1
+					fi
+					echo "Making sure kaiju2table is installed..."
+					if [[ $(find ~/ -name kaiju2table | grep -w bin | head -n1) ]]; then
+						kaiju2table=$(find ~/ -name kaiju2table | grep -w bin | head -n1)
+						echo "kaiju2table found! Location: $kaiju2table"
+					else
+						echo "ERROR: unable to find required package kaiju2table"
+						exit 1
+					fi
+					echo "kaiju2table requires a names.dmp file. Looking for it..."
+					if [[ $(find ~/ -name names.dmp | head -n1) ]]; then
+						names=$(find ~/ -name names.dmp | head -n1)
+						echo "names.dmp found! Location: $names"
+					else
+						echo "ERROR: unable to find names.dmp"
+						exit 1
+					fi
+				else
+					echo "ERROR: '$k' is not a valid option for -k"
+					usage
+					exit 1
+				fi
+			else
+				echo "ERROR: -k needs an option"
+				usage
+				exit 1
+			fi
+			;;
+		-t)
+			if [[ -n "$2" ]]; then
+				t=$2; shift; shift
+				if [[ "$t" = "pe" ]] || [[ "$t" = "se" ]] || [[ "$t" = "pe_se" ]]; then
+					if [[ -z ${f+x} ]]; then
+						echo "-f is unset. Fastp quality control will be skipped"
+					fi
+					if [[ -z ${k+x} ]]; then
+						echo "-k is unset. Kaiju taxonomic classification will be skipped"
+					fi
+					echo "-t is set to '$t'"
+					echo "Making sure kaiju2table is installed..."
+					if [[ $(find ~/ -name kaiju2table | grep -w bin | head -n1) ]]; then
+						kaiju2table=$(find ~/ -name kaiju2table | grep -w bin | head -n1)
+						echo "kaiju2table found! Location: $kaiju2table"
+					else
+						echo "ERROR: unable to find required package kaiju2table"
+						exit 1
+					fi
+					echo "kaiju2table requires a names.dmp file. Looking for it..."
+					if [[ $(find ~/ -name names.dmp | head -n1) ]]; then
+						names=$(find ~/ -name names.dmp | head -n1)
+						echo "names.dmp found! Location: $names"
+					else
+						echo "ERROR: unable to find names.dmp"
+						exit 1
+					fi
+					echo "kaiju also requires a nodes.dmp file. Looking for it..."
+					if [[ $(find ~/ -name nodes.dmp | head -n1) ]]; then
+						nodes=$(find ~/ -name nodes.dmp | head -n1)
+						echo "nodes.dmp found! Location: $nodes"
+					else
+						echo "ERROR: unable to find nodes.dmp"
+						exit 1
+					fi
+				else
+					echo "ERROR: '$t' is not a valid option for -t"
+					usage
+					exit 1
+				fi
+			else
+				echo "ERROR: -t needs an option"
+				usage
+				exit 1
+			fi
+			;;
+		-g)
+			if [[ -n "$2" ]]; then
+				group=$2; shift; shift
+				if [[ "$group" = "Bacteria" ]] || [[ "$group" = "Archaea" ]] || [[ "$group" = "Eukaryota" ]] || [[ "$group" = "Viruses" ]]; then
+					if [[ -z ${f+x} ]]; then
+						echo "-f is unset. Fastp quality control will be skipped"
+					fi
+					if [[ -z ${k+x} ]]; then
+						echo "-k is unset. Kaiju taxonomic classification will be skipped"
+					fi
+					if [[ -z ${t+x} ]]; then
+						echo "-t is unset. kaiju2table processing will be skipped"
+					fi
+					echo "-g is set to '$group'"
+				else
+					echo "ERROR: '$group' is not a valid option for -g"
+					usage
+					exit 1
+				fi
+			else
+				echo "ERROR: -g needs an option"
+				usage
+				exit 1
+			fi
+			;;
+		*)
+			break
+			;;
+	esac
+done
+
+#################### FUNCTIONS ####################
+
+fastp_pe () {
+	cd $main_dir
+	mkdir fastp
+	fastp_dir=fastp
+
+	for i in $(ls *_1.fastq.gz | sort); do
+		echo "Running quality filter for $i and "${i%1.fastq.gz}2.fastq.gz". Sequences are deduplicated"
+		$fastp -i $i -I "${i%1.fastq.gz}2.fastq.gz" -o $fastp_dir/"${i%.fastq.gz}.fastp.fastq.gz" -O $fastp_dir/"${i%1.fastq.gz}2.fastp.fastq.gz" -j $fastp_dir/"${i%_1.fastq.gz}.fastp.json" -h $fastp_dir/"${i%_1.fastq.gz}.fastp.html" -D -V 2> $fastp_dir/"${i%_1.fastq.gz}.fastp.out"
+		echo Done processing $i and "${i%1.fastq.gz}2.fastq.gz". Quality filtered files are: $main_dir/$fastp_dir/"${i%.fastq.gz}.fastp.fastq.gz" and $main_dir/$fastp_dir/"${i%1.fastq.gz}2.fastp.fastq.gz"
+	done
+}
+
+kaiju_pe () {
+	cd fastp
+	mkdir kaiju
+	kaiju_dir=kaiju
+	echo "Making sure read names are in the correct format"
+	for i in $(ls *.fastq.gz | sort); do
+		mv $i $i'_original'
+	done
+	for i in $(ls *_original | sort); do
+		pigz -c -d $i | sed 's/\.1 / 1 /g' | sed 's/\.2 / 2 /' | pigz > "${i%_original}"
+	done
+	rm *_original
+	echo "Done"
+	in_1=$(ls *1.fastp.fastq.gz | sort | tr -s '\n' ',')
+	in_2=$(ls *2.fastp.fastq.gz | sort | tr -s '\n' ',')
+	out=$(ls *1.fastp.fastq.gz | sort |  sed 's/_1\.fastp\.fastq\.gz/\.kaiju\.out/g' | tr -s '\n' ',')
+	echo "Running taxonomic classification for $in_1 and $in_2"
+	$kaiju -z $z -t $nodes -f $kaiju_db -i $in_1 -j $in_2 -o $out -v 2> $kaiju_dir/kaiju.err
+	mv *.kaiju.out $kaiju_dir
+	echo "Done processing $in_1 and $in_2"
+	echo "Kaiju output files within $kaiju_dir directory are: $out"
+}
+
+fastp_se () {
+	cd $main_dir
+	mkdir fastp
+	fastp_dir=fastp
+
+	for i in $(ls *.fastq.gz | sort); do
+		echo "Running quality filter for $i. Sequences are deduplicated"
+		$fastp -i $i -o $fastp_dir/"${i%.fastq.gz}.fastp.fastq.gz" -j $fastp_dir/"${i%.fastq.gz}.fastp.json" -h $fastp_dir/"${i%.fastq.gz}.fastp.html" -D -V 2> $fastp_dir/"${i%.fastq.gz}.fastp.out"
+		echo Done processing $i. Quality filtered file is: $main_dir/$fastp_dir/"${i%.fastq.gz}.fastp.fastq.gz"
+	done
+}
+
+kaiju_se () {
+	cd fastp
+	mkdir kaiju
+	kaiju_dir=kaiju
+	input=$(ls *.fastp.fastq.gz | sort | tr -s '\n' ',')
+	out=$(ls *.fastp.fastq.gz | sort | sed 's/\.fastp\.fastq\.gz/\.kaiju\.out/g' | tr -s '\n' ',')
+	echo "Running taxonomic classification for $input"
+	$kaiju -z $z -t $nodes -f $kaiju_db -i $input -o $out -v 2> $kaiju_dir/kaiju.err
+	mv *.kaiju.out $kaiju_dir
+	echo "Done processing $input"
+	echo "Kaiju output files within $kaiju_dir directory are: $out"	
+}
+
+kaiju2table () {
+	cd kaiju
+	if [[ -d ../../../kaiju2table ]]; then
+		echo "Using already existing directory: kaiju2table"
+	else
+		mkdir ../../../kaiju2table
+	fi
+	kaiju2table_dir=../../../kaiju2table
+
+	for i in $(ls *.out | sort); do
+		echo "Creating classification summary for $i"
+		$kaiju2table -t $nodes -n $names -e -r species -l superkingdom,phylum,class,order,family,genus,species -v -o $kaiju2table_dir/"${i%.out}.tsv" $i 2> $kaiju2table_dir/"${i%.out}.err"
+		echo Done processing $i. Classification summary file is $kaiju2table_dir/"${i%.out}.tsv"
+	done
+}
+
+phyloseq_tables () {
+	if [[ -d phyloseq_tables ]]; then
+		if [[ -f phyloseq_tables/SAM.table ]]; then
+			if [[ -f phyloseq_tables/"$group"_OTU.table && -f phyloseq_tables/"$group"_TAX.table ]]; then
+				echo "phyloseq tables already exist. Skipping to plot generation"
+				cd phyloseq_tables
+			else
+				echo "Starting $group phyloseq OTU and TAX tables building"
+				if [[ $(ls kaiju2table/*.tsv) ]]; then
+					echo "kaiju2table output files.kaiju.tsv detected:"
+					cd kaiju2table
+    			    ls *.tsv
+					if [[ $(grep ';' *.tsv) ]]; then
+						echo "Modifying .tsv ';' delimiters to tab"
+						sed -i 's/;/	/g' *.tsv
+					else
+						echo ".tsv files already tab delimited"
+					fi
+					echo "Creating kaiju2table/$group/ directory"
+					mkdir $group
+					if [[ ! -f unclassified.txt ]]; then
+						echo "Extracting unclassified reads to kaiju2table/unclassified.txt"
+						grep -v -E 'Bacteria|Archaea|Eukaryota|Viruses' *.tsv > unclassified.txt
+					else
+						echo "kaiju2table/unclassified.txt file already created"
+					fi
+					echo "Extracting $group data from tables"
+					for i in $(ls *.tsv); do
+						grep $group $i > $group/"${i%.kaiju.tsv}_$group.tsv"
+						echo done extracting $group data from $i. Data written to: $group/"${i%.kaiju.tsv}_$group.tsv"
+					done
+					cd $group
+					cat *.tsv | cut -f 4,5,6,7,8,9,10,11 | sort -u | sed 's/^/			/' > taxonomy.ref
+					echo "Creating $group OTU table"
+					echo "Getting list of all tax_ids"
+					cat *.tsv | cut -f 4 | sort -u > all_tax_ids.tmp
+					for i in $(ls *.tsv); do
+						echo "Getting read counts for $i"
+						cat all_tax_ids.tmp | while read line; do
+							if [[ $(awk -v awkvar="$line" -F '\t' '{if ($4 == awkvar) print $0;}' $i) ]]; then
+								awk -v awkvar="$line" -F '\t' '{if ($4 == awkvar) print $0;}' $i |  awk -F '\t' '{sum += $3} END {print sum}'
+							else
+								echo "0"
+							fi
+						done > "${i%.tsv}.counts"
+					done
+					paste all_tax_ids.tmp *.counts > counts.temp
+					header=$(cat *.tsv | cut -f 1 | sort -u)
+					echo $header | sed '1s/^/otu	/' | sed 's/  */	/g' > header.temp
+					cat header.temp counts.temp > "$group"_OTU.table
+					echo "Done creating $group OTU table"
+					echo "Creating $group TAX table"
+					cat all_tax_ids.tmp | while read line; do
+						awk -v awkvar="$line" -F '\t' '{if ($4 == awkvar) print $4"\t"$5"\t"$6"\t"$7"\t"$8"\t"$9"\t"$10"\t"$11}' taxonomy.ref
+					done > tax.temp
+					header=$(echo otu Superkingdom Phylum Class Order Family Genus Species)
+					echo $header | sed 's/  */	/g' > tax_header.tmp
+					cat tax_header.tmp tax.temp > "$group"_TAX.table
+					echo "Done creating $group TAX table"
+					mv *.table ../../phyloseq_tables
+					echo "$group OTU table written to phyloseq_tables/"$group"_OTU.table"
+					echo "$group TAX table written to phyloseq_tables/"$group"_TAX.table"
+					echo "Done creating $group phyloseq tables"
+					rm *.temp *.tmp *.counts *.ref
+					cd ../../phyloseq_tables
+				else
+					echo "ERROR: unable to find kaiju2table output files.kaiju.tsv. Expecting (example): kaiju2table/sample1.kaiju.tsv, kaiju2table/sample2.kaiju.tsv"
+					exit 1
+				fi
+			fi
+		else
+			echo "ERROR: phyloseq_tables/SAM.table file does not exist. It must be a tab separated metadata table to be loaded by phyloseq. Samples must be listed in alphabetical order"
+			exit 1
+		fi
+	else
+		echo "ERROR: phyloseq_tables/ directory does not exist"
+		exit 1
+	fi
+}
+
+comets_R (){
+	echo "Starting drawing $group plots"
+	comets_plots.R "$group"_OTU.table "$group"_TAX.table SAM.table 2> comets_plots.err
+	echo "Done drawing $group plots"
+}
+
+#################### MAIN SCRIPT ####################
+echo
+echo "** START **"
+if [[ -z ${f+x} ]]; then
+	if [[ -z ${k+x} ]]; then
+		if [[ -z ${t+x} ]]; then
+			phyloseq_tables
+			comets_R
+		else
+			if [[ "$t" = "pe" ]]; then
+				if [[ $(ls paired_end/fastp/kaiju/*.out) ]]; then
+					echo "kaiju.out files detected:"
+					ls paired_end/fastp/kaiju/*.out
+					cd paired_end/fastp
+					kaiju2table
+					cd ../../..
+					phyloseq_tables
+					comets_R
+				else
+					echo "ERROR: unable to find paired end files. Expecting (example): paired_end/fastp/kaiju/sample1.kaiju.out, paired_end/fastp/kaiju/sample2.kaiju.out"
+					exit 1
+				fi
+			elif [[ "$t" = "se" ]]; then
+				if [[ $(ls single_end/fastp/kaiju/*.out) ]]; then
+					echo "kaiju.out files detected:"
+					ls single_end/fastp/kaiju/*.out
+					cd single_end/fastp
+					kaiju2table
+					cd ../../..
+					phyloseq_tables
+					comets_R
+				else
+					echo "ERROR: unable to find single end files. Expecting (example): single_end/fastp/kaiju/sample1.kaiju.out, single_end/fastp/kaiju/sample2.kaiju.out"
+					exit 1
+				fi
+			elif [[ "$t" = "pe_se" ]]; then
+				if [[ $(ls paired_end/fastp/kaiju/*.out) ]]; then
+					echo "kaiju.out files detected:"
+					ls paired_end/fastp/kaiju/*.out
+					cd paired_end/fastp
+					kaiju2table
+					cd ../../..
+					if [[ $(ls single_end/fastp/kaiju/*.out) ]]; then
+						echo "kaiju.out files detected:"
+						ls single_end/fastp/kaiju/*.out
+						cd single_end/fastp
+						kaiju2table
+						cd ../../..
+						phyloseq_tables
+						comets_R
+					else
+						echo "ERROR: unable to find single end files. Expecting (example): single_end/fastp/kaiju/sample1.kaiju.out, single_end/fastp/kaiju/sample2.kaiju.out"
+						exit 1
+					fi
+				else
+					echo "ERROR: unable to find paired end files. Expecting (example): paired_end/fastp/kaiju/sample1.kaiju.out, paired_end/fastp/kaiju/sample2.kaiju.out"
+					exit 1
+				fi
+			fi
+		fi
+	elif [[ "$k" = "pe" ]]; then
+		if [[ $(ls paired_end/fastp/*.fastp.fastq.gz) ]]; then
+			echo "fastp paired end files detected:"
+			ls paired_end/fastp/*.fastp.fastq.gz
+			cd paired_end
+			kaiju_pe
+			kaiju2table
+			cd ../../..
+			phyloseq_tables
+			comets_R
+		else
+			echo "ERROR: unable to detect fastp paired end files. Expecting (example): paired_end/fastp/sample1_1.fastp.gz and paired_end/fastp/sample1_2.fastp.gz"
+			exit 1
+		fi
+	elif [[ "$k" = "se" ]]; then
+		if [[ $(ls single_end/fastp/*.fastp.fastq.gz) ]]; then
+			echo "fastp single end files detected:"
+			ls single_end/fastp/*.fastp.fastq.gz
+			cd single_end
+			kaiju_se
+			kaiju2table
+			cd ../../..
+			phyloseq_tables
+			comets_R
+		else
+			echo "ERROR: unable to detect fastp single end files. Expecting (example): single_end/fastp/sample1.fastp.gz and single_end/fastp/sample2.fastp.gz"
+			exit 1
+		fi
+	elif [[ "$k" = "pe_se" ]]; then
+		if [[ $(ls paired_end/fastp/*.fastp.fastq.gz) ]]; then
+			echo "fastp paired end files detected:"
+			ls paired_end/fastp/*.fastp.fastq.gz
+			cd paired_end
+			kaiju_pe
+			kaiju2table
+			cd ../../../
+			if [[ $(ls single_end/fastp/*.fastp.fastq.gz) ]]; then
+				echo "fastp single end files detected:"
+				ls single_end/fastp/*.fastp.fastq.gz
+				cd single_end
+				kaiju_se
+				kaiju2table
+				cd ../../..
+				phyloseq_tables
+				comets_R
+			else
+				echo "ERROR: unable to detect fastp single end files. Expecting (example): single_end/fastp/sample1.fastp.gz and single_end/fastp/sample2.fastp.gz"
+				exit 1
+			fi
+		else
+			echo "ERROR: unable to detect fastp paired end files. Expecting (example): paired_end/fastp/sample1_1.fastp.gz and paired_end/fastp/sample1_2.fastp.gz"
+			exit 1
+		fi
+	fi
+elif [[ "$f" = "pe" ]]; then
+	if [[ $(ls *_?.fastq.gz) ]]; then
+		echo "Paired end files detected:"
+		ls *_?.fastq.gz
+		echo "Creating a directory for paired end files:"
+		mkdir paired_end
+		main_dir=paired_end/
+		echo "$main_dir"
+		echo "Moving paired end files to $main_dir"
+		mv *_?.fastq.gz $main_dir
+		fastp_pe
+		kaiju_pe
+		kaiju2table
+		cd ../../..
+		phyloseq_tables
+		comets_R
+	else
+		echo "ERROR: unable to find paired end files. Must have _1.fastq.gz and _2.fastq.gz extensions"
+		exit 1
+	fi
+elif [[ "$f" = "se" ]]; then
+	if [[ $(ls *.fastq.gz | grep -v '_[1-2]\.fastq\.gz') ]]; then
+		echo "Single end files detected:"
+		ls *.fastq.gz | grep -v '_[1-2]\.fastq\.gz'
+		echo "Creating a directory for single end files:"
+		mkdir single_end
+		main_dir=single_end
+		echo "$main_dir/"
+		echo "Moving single end files to $main_dir/"
+		for i in $(ls *.fastq.gz | grep -v '_[1-2]\.fastq\.gz'); do 
+			mv $i $main_dir
+		done
+		fastp_se
+		kaiju_se
+		kaiju2table
+		cd ../../..
+		phyloseq_tables
+		comets_R
+	else
+		echo "ERROR: unable to detect single end files. Must NOT have _1 or _2 suffix before .fastq.gz"
+		exit 1
+	fi
+elif [[ "$f" = "pe_se" ]]; then
+	if [[ $(ls *_?.fastq.gz) ]]; then
+		echo "Paired end files detected:"
+		ls *_?.fastq.gz
+		echo "Creating a directory for paired end files:"
+		mkdir paired_end
+		main_dir=paired_end/
+		echo "$main_dir"
+		echo "Moving paired end files to $main_dir"
+		mv *_?.fastq.gz $main_dir
+		fastp_pe
+		kaiju_pe
+		kaiju2table
+		cd ../../..
+		if [[ $(ls *.fastq.gz | grep -v '_[1-2]\.fastq\.gz') ]]; then
+			echo "Single end files detected:" 
+			ls *.fastq.gz | grep -v '_[1-2]\.fastq\.gz'
+			echo "Creating a directory for single end files:"
+			mkdir single_end
+			main_dir=single_end
+			echo "$main_dir/"
+			echo "Moving single end files to $main_dir/"
+			for i in $(ls *.fastq.gz | grep -v '_[1-2]\.fastq\.gz'); do 
+				mv $i $main_dir
+			done
+			fastp_se
+			kaiju_se
+			kaiju2table
+			cd ../../..
+			phyloseq_tables
+			comets_R
+		else
+			echo "ERROR: unable to detect single end files. Must NOT have _1 or _2 suffix before .fastq.gz"
+			exit 1
+		fi
+	else
+		echo "ERROR: unable to find paired end files. Must have _1.fastq.gz and _2.fastq.gz extensions"
+		exit 1
+	fi
+fi
+
+echo "** END **"
