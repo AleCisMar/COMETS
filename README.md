@@ -13,7 +13,7 @@ COMETS is an automated tool to compare multiple metagenomes. It can automaticall
   + mirlyn (https://github.com/escamero/mirlyn)
 
 ## Installation and setup:
-comets is a bash script. Just download comets and comets_plots.R and place them in your local bin directory. If you don't have a bin directory just type mkdir bin. If your bin directory is not in $PATH add the following to the end of your .profile file:
+comets is a bash script. Just download comets and comets_plots.R and place them in your local bin directory. If you don't have a bin directory just type within your HOME directory `mkdir bin`. If your bin directory is not in $PATH add the following to the end of your .profile file:
 
 ```{bash, eval=FALSE, echo=TRUE}
 if [ -d "$HOME/bin" ] ; then
