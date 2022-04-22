@@ -39,8 +39,8 @@ Samples must be listed in alphabetical order. Example: If you want to compare sa
 
 Files|Sample|SampleType
 --|--|--
-sample1.kaiju.out|sample1|seawater
-sample2.kaiju.out|sample2|freshwater
+sample1.kaiju.tsv|sample1|seawater
+sample2.kaiju.tsv|sample2|freshwater
 
 ### Starting from raw reads:
 ```{bash, eval=FALSE, echo=TRUE}
