@@ -454,7 +454,7 @@ phyloseq_tables () {
 						done > "${i%.tsv}.counts"
 					done
 					paste all_tax_ids.tmp *.counts > counts.temp
-					header=$(cat *.tsv | cut -f1 | sort -u | sed 's/_kaiju.out/.kaiju.tsv/')
+					header=$(cat *.tsv | cut -f1 | sort -u | sed 's/\.kaiju\.out/\.kaiju\.tsv/' | grep -v 'file')
 					echo $header | sed '1s/^/otu	/' | sed 's/  */	/g' > header.temp
 					cat header.temp counts.temp > "$group"_OTU.table
 					echo "Done creating $group OTU table"
