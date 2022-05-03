@@ -308,7 +308,7 @@ while :; do
 							echo "-k is unset. Kaiju taxonomic classification will be skipped"
 							if [[ -z ${t+x} ]]; then
 								echo "-t is unset. kaiju2table processing will be skipped"
-							fi							
+							fi
 						fi
 					fi
 					echo "-g is set to '$group'"
