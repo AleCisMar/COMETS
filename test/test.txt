@@ -1,1 +1,13 @@
 This folder contains test data to run COMETS
+
+It includes four publicly available metagenomes from Hypersaline environments:
+2010Bt1.fastq.gz
+2010Bt3.fastq.gz
+
+and Marine environments:
+Kingman_atoll.fastq.gz
+Sargasso_sea.fastq.gz
+
+Since all files are single-end raw reads, the simplest test command to analyze viral reads should look like:
+
+comets -f se -g Viruses
