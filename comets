@@ -301,7 +301,7 @@ while :; do
 		-g)
 			if [[ -n "$2" ]]; then
 				group=$2; shift; shift
-				if [[ "$group" = "Bacteria" ]] || [[ "$group" = "Archaea" ]] || [[ "$group" = "Eukaryota" ]] || [[ "$group" = "Viruses" ]]; then
+				if [[ "$group" = "Prokaryotes" ]] || [[ "$group" = "Bacteria" ]] || [[ "$group" = "Archaea" ]] || [[ "$group" = "Eukaryota" ]] || [[ "$group" = "Viruses" ]]; then
 					if [[ -z ${f+x} ]]; then
 						echo "-f is unset. Fastp quality control will be skipped"
 						if [[ -z ${k+x} ]]; then
@@ -434,10 +434,17 @@ phyloseq_tables () {
 						echo "kaiju2table/unclassified.txt file already created"
 					fi
 					echo "Extracting $group data from tables"
-					for i in $(ls *.tsv); do
-						grep $group $i > $group/"${i%.kaiju.tsv}_$group.tsv"
-						echo done extracting $group data from $i. Data written to: $group/"${i%.kaiju.tsv}_$group.tsv"
-					done
+					if [[ "$group" = "Prokaryotes" ]]; then
+						for i in $(ls *.tsv); do
+							grep -E 'Bacteria|Archaea' $i > $group/"${i%.kaiju.tsv}_$group.tsv"
+							echo done extracting $group data from $i. Data written to: $group/"${i%.kaiju.tsv}_$group.tsv"
+						done
+					else
+						for i in $(ls *.tsv); do
+							grep $group $i > $group/"${i%.kaiju.tsv}_$group.tsv"
+							echo done extracting $group data from $i. Data written to: $group/"${i%.kaiju.tsv}_$group.tsv"
+						done
+					fi
 					cd $group
 					cat *.tsv | cut -f 4,5,6,7,8,9,10,11 | sort -u | sed 's/^/			/' > taxonomy.ref
 					echo "Creating $group OTU table"
