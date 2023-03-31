@@ -9,19 +9,19 @@ usage () {
 	echo "Usage:"
 	echo "   Starting from fastp quality filtering of raw reads:"
 	echo
-	echo "                                                     comets [-z INTEGER] [-d path/to/kaiju_db.fmi] -f pe|se|pe_se -g Bacteria|Archaea|Eukaryota|Viruses"
+	echo "                                                     comets [-z INTEGER] [-d path/to/kaiju_db.fmi] -f pe|se|pe_se -g Prokaryotes|Bacteria|Archaea|Eukaryota|Viruses"
 	echo
 	echo "   Starting from kaiju taxonomic classification of quality filtered reads:"
 	echo
-	echo "                                                     comets [-z INTEGER] [-d path/to/kaiju_db.fmi] -k pe|se|pe_se -g Bacteria|Archaea|Eukaryota|Viruses"
+	echo "                                                     comets [-z INTEGER] [-d path/to/kaiju_db.fmi] -k pe|se|pe_se -g Prokaryotes|Bacteria|Archaea|Eukaryota|Viruses"
 	echo
 	echo "   Starting from kaiju2table processing of kaiju.out files:"
 	echo
-	echo "                                                     comets -t pe|se|pe_se -g Bacteria|Archaea|Eukaryota|Viruses"
+	echo "                                                     comets -t pe|se|pe_se -g Prokaryotes|Bacteria|Archaea|Eukaryota|Viruses"
 	echo
 	echo "   Starting from taxonomic group tables filtering:"
 	echo
-	echo "                                                     comets -g Bacteria|Archaea|Eukaryota|Viruses"
+	echo "                                                     comets -g Prokaryotes|Bacteria|Archaea|Eukaryota|Viruses"
 	echo
 	echo "Help:"
 	echo "   -h"
@@ -55,7 +55,8 @@ usage () {
 	echo "                                          Will perform the whole process starting from kaiju2table processing of kaiju.out files to obtain classification summary tables"
 	echo "                                          Output files will be palced in a separate kaiju2table directory: kaiju2table/sample1.tsv, kaiju2table/sample2.tsv"
 	echo
-	echo "   -g STRING   taxonomic group tables  Options: Bacteria|Archaea|Eukaryota|Viruses - Input file example: kaiju2table/sample1.kaiju.tsv, kaiju2table/sample2.kaiju.tsv"
+	echo "   -g STRING   taxonomic group tables  Options: Prokaryotes|Bacteria|Archaea|Eukaryota|Viruses - Input file example: kaiju2table/sample1.kaiju.tsv, kaiju2table/sample2.kaiju.tsv"
+	echo "                                                                                     Prokaryotes - filter data to obtain bacteria and archaea tax-id, phylum, class, order, family, genus and species tables"
 	echo "                                                                                     Bacteria - filter data to obtain bacteria tax-id, phylum, class, order, family, genus and species tables"
 	echo "                                                                                     Archaea - filter data to obtain archaea tax-id, phylum, class, order, family, genus and species tables"
 	echo "                                                                                     Eukaryota - filter data to obtain eukaryota tax-id, phylum, class, order, family, genus and species tables"
