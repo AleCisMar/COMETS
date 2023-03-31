@@ -44,14 +44,14 @@ sample2.kaiju.tsv|sample2|freshwater
 
 ### Starting from raw reads:
 ```{bash, eval=FALSE, echo=TRUE}
-comets [-z INTEGER] [-d path/to/kaiju_db.fmi] -f pe|se|pe_se -g Bacteria|Archaea|Eukaryota|Viruses
+comets [-z INTEGER] [-d path/to/kaiju_db.fmi] -f pe|se|pe_se -g Prokaryotes|Bacteria|Archaea|Eukaryota|Viruses
 ```
 This mode will perform the whole process starting from fastp processing of raw reads.
 
 * -z - Optional argument to specify the number of parallel threads for the taxonomic classification. Default=1
 * -d - Optional argument to specify the path to the kaiju databse for the taxonomic classification. Default=kaiju_db_nr_euk.fmi
 * -f - Mandatory argument to specify if files are paired end (pe), single end (se) or both (pe_se). Such files must be in the working directory
-* -g - Mandatory argument to specify the taxonomic group to analyze (either Bacteria or Archaea or Eukaryota or Viruses). Names must be provided with the first letter in uppercase
+* -g - Mandatory argument to specify the taxonomic group to analyze (either Bacteria and/or Archaea or Eukaryota or Viruses). Names must be provided with the first letter in uppercase
 
 Example paired end files: sample1_1.fastq.gz, sample1_2.fastq.gz, sample2_1.fastq.gz, sample2_2.fastq.gz  
 Example single end files: sample1.fastq.gz, sample2.fastq.gz  
@@ -59,14 +59,14 @@ NOTE: Single end files name must not have _1 or _2 suffix before .fastq.gz exten
 
 ### Starting from fastp quality filtered reads:
 ```{bash, eval=FALSE, echo=TRUE}
-comets [-z INTEGER] [-d path/to/kaiju_db.fmi] -k pe|se|pe_se -g Bacteria|Archaea|Eukaryota|Viruses
+comets [-z INTEGER] [-d path/to/kaiju_db.fmi] -k pe|se|pe_se -g Prokaryotes|Bacteria|Archaea|Eukaryota|Viruses
 ```
 This mode will assume that reads are already quality filtered and will start the process from the kaiju taxonomic classification step.
 
 * -z - Optional argument to specify the number of parallel threads for the taxonomic classification. Default=1
 * -d - Optional argument to specify the path to the kaiju databse for the taxonomic classification. Default=kaiju_db_nr_euk.fmi
 * -k - Mandatory argument to specify if files are paired end (pe), single end (se) or both (pe_se)
-* -g - Mandatory argument to specify the taxonomic group to analyze (either Bacteria or Archaea or Eukaryota or Viruses). Names must be provided with the first letter in uppercase
+* -g - Mandatory argument to specify the taxonomic group to analyze (either Bacteria and/or Archaea or Eukaryota or Viruses). Names must be provided with the first letter in uppercase
 
 Example paired end files: paired_end/fastp/sample1_1.fastp.fastq.gz, paired_end/fastp/sample1_2.fastp.fastq.gz, paired_end/fastp/sample2_1.fastp.fastq.gz, paired_end/fastp/sample2_2.fastp.fastq.gz  
 Example single end files: single_end/fastp/sample1.fastp.fastq.gz, single_end/fastp/sample2.fastp.fastq.gz  
@@ -75,12 +75,12 @@ NOTE: Input files must be within a paired_end/fastp/ or single_end/fastp/ direct
 
 ### Starting from kaiju.out files:
 ```{bash, eval=FALSE, echo=TRUE}
-comets -t pe|se|pe_se -g Bacteria|Archaea|Eukaryota|Viruses
+comets -t pe|se|pe_se -g Prokaryotes|Bacteria|Archaea|Eukaryota|Viruses
 ```
 This mode will assume that taxonomic classification is already done and will start the process from the kaiju2table classification summary.
 
 * -t - Mandatory argument to specify if files are paired end (pe), single end (se) or both (pe_se)
-* -g - Mandatory argument to specify the taxonomic group to analyze (either Bacteria or Archaea or Eukaryota or Viruses). Names must be provided with the first letter in uppercase
+* -g - Mandatory argument to specify the taxonomic group to analyze (either Bacteria and/or Archaea or Eukaryota or Viruses). Names must be provided with the first letter in uppercase
 
 Example paired end files: paired_end/fastp/kaiju/sample1.kaiju.out, paired_end/fastp/kaiju/sample2.kaiju.out  
 Example single end files:  single_end/fastp/kaiju/sample1.kaiju.out,  single_end/fastp/kaiju/sample2.kaiju.out  
@@ -88,11 +88,11 @@ NOTE: Input files must be within a paired_end/fastp/kaiju/ or single_end/fastp/k
 
 ### Starting from classification summary tables.kaiju.tsv:
 ```{bash, eval=FALSE, echo=TRUE}
-comets -g Bacteria|Archaea|Eukaryota|Viruses
+comets -g Prokaryotes|Bacteria|Archaea|Eukaryota|Viruses
 ```
 This mode will assume that classification summary tables exist and will start the process from the taxonomic group table formatting to produce taxonomic group specific phyloseq tables. The user can loop this step with any of the valid options to get the phyloseq tables and plots for all taxonomic groups. If all phyloseq tables are already made and want to proceed only to plot generation the user must specify which taxonomic group to plot.
 
-* -g - Mandatory argument to specify the taxonomic group to analyze (either Bacteria or Archaea or Eukaryota or Viruses). Names must be provided with the first letter in uppercase
+* -g - Mandatory argument to specify the taxonomic group to analyze (either Bacteria and/or Archaea or Eukaryota or Viruses). Names must be provided with the first letter in uppercase
 
 Example input files: kaiju2table/sample1.kaiju.tsv, kaiju2table/sample2.kaiju.tsv  
 NOTE: Input files must be within a kaiju2table/ directory  
