@@ -415,7 +415,7 @@ comets_R (){
 	fi
 
 	echo "Starting drawing $group plots"
-	comets_plots "$group"_OTU.table "$group"_TAX.table SAM.table 2> comets_plots.err
+	$comets_plots "$group"_OTU.table "$group"_TAX.table SAM.table 2> comets_plots.err
 	echo "Done drawing $group plots"
 }
 
