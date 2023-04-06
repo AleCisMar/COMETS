@@ -8,6 +8,8 @@ and Marine environments:
 Kingman_atoll.fastq.gz
 Sargasso_sea.fastq.gz
 
-Since all files are single-end raw reads, the simplest test command to analyze viral reads should look like:
+Note that the phyloseq_tables directory is also included along with the SAM.table file
 
-comets -f se -g Viruses
+Since all files are single-end raw reads, a full test command to analyze viral reads from scratch should look like:
+
+comets -p se -f auto -k auto -z 4 -t -g Viruses -r
