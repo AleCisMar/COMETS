@@ -1,7 +1,7 @@
 # COMETS
 COMETS (COmpare METagenomeS)
 
-COMETS is an automated tool to compare multiple metagenomes. It can automatically process quality filters for raw reads, perform taxonomic classification, format taxonomic group tables (either Bacteria or Archaea or Eukaryota or Viruses) and output rarefaction curves, relative abundance, alpha diversity and NMDS Bray-Curtis dissimilarity plots.
+COMETS is an automated tool to compare multiple metagenomes. It can automatically process quality filters for raw reads, perform taxonomic classification, format taxonomic group tables (either Prokaryotes, Bacteria, Archaea, Eukaryota, Viruses or All) and output rarefaction curves, relative abundance, alpha diversity and NMDS Bray-Curtis dissimilarity plots. It can be run in a modular fashion, starting the whole process at any point or running one process at a time.
 
 ## Dependencies:
 * fastp (https://github.com/OpenGene/fastp)
@@ -34,69 +34,57 @@ which Rscript
 If necessary change the first line of comets_plots.R for the actual Rscript path
 
 ## Usage:
-IMPORTANT NOTE: Before start please provide a file named phyloseq_tables/SAM.table. This is a tab separated metadata table to be loaded by phyloseq. It must contain at least three columns: Files, Sample and SampleType  
-Samples must be listed in alphabetical order. Example: If you want to compare sample1 (paired end, seawater) and sample2 (single end freshwater) you will have three fastq.gz files (sample1_1.fastq.gz, sample1_2.fastq.gz and sample2.fastq.gz). The SAM.table within the phyloseq_tables/ directory should look like this:
+IMPORTANT NOTE: Before starting any process including -r option please provide a file named phyloseq_tables/SAM.table. This is a tab separated metadata table to be loaded by phyloseq. It must contain at least three columns: Files, Sample and SampleType  
+Samples must be listed in alphabetical order (as in a simple ls and sort listing of files). Example: If you want to compare sample1 (paired end, seawater) and sample2 (single end freshwater) you will have three fastq.gz files (sample1_1.fastq.gz, sample1_2.fastq.gz and sample2.fastq.gz). The SAM.table within the phyloseq_tables/ directory should look like this:
 
 Files|Sample|SampleType
 --|--|--
 sample1.kaiju.tsv|sample1|seawater
 sample2.kaiju.tsv|sample2|freshwater
 
-### Starting from raw reads:
+### Whole process starting from quality filter of raw reads:
 ```{bash, eval=FALSE, echo=TRUE}
-comets [-z INTEGER] [-d path/to/kaiju_db.fmi] -f pe|se|pe_se -g Prokaryotes|Bacteria|Archaea|Eukaryota|Viruses
+comets -p pe|se|pe_se -f auto|<path_to_fastp> -k auto|<path_to_kaiju-multi> [-z <int>] [-d <path_to_kaiju_db>] [-K <path_to_kaiju2table>] [-n <path_to_nodes.dmp>] [-N <path_to_names.dmp>] -t -g All|Prokaryotes|Bacteria|Archaea|Eukaryota|Viruses -r
 ```
-This mode will perform the whole process starting from fastp processing of raw reads.
-
-* -z - Optional argument to specify the number of parallel threads for the taxonomic classification. Default=1
-* -d - Optional argument to specify the path to the kaiju databse for the taxonomic classification. Default=kaiju_db_nr_euk.fmi
-* -f - Mandatory argument to specify if files are paired end (pe), single end (se) or both (pe_se). Such files must be in the working directory
-* -g - Mandatory argument to specify the taxonomic group to analyze (either Bacteria and/or Archaea or Eukaryota or Viruses). Names must be provided with the first letter in uppercase
-
 Example paired end files: sample1_1.fastq.gz, sample1_2.fastq.gz, sample2_1.fastq.gz, sample2_2.fastq.gz  
 Example single end files: sample1.fastq.gz, sample2.fastq.gz  
 NOTE: Single end files name must not have _1 or _2 suffix before .fastq.gz extension. Otherwise the script will wet very confused  
 
-### Starting from fastp quality filtered reads:
+### Whole process starting from taxonomic classification of quality filtered reads:
 ```{bash, eval=FALSE, echo=TRUE}
-comets [-z INTEGER] [-d path/to/kaiju_db.fmi] -k pe|se|pe_se -g Prokaryotes|Bacteria|Archaea|Eukaryota|Viruses
+comets -p pe|se|pe_se -k auto|<path_to_kaiju-multi> [-z <int>] [-d <path_to_kaiju_db>] [-K <path_to_kaiju2table>] [-n <path_to_nodes.dmp>] [-N <path_to_names.dmp>] -t -g All|Prokaryotes|Bacteria|Archaea|Eukaryota|Viruses -r
 ```
-This mode will assume that reads are already quality filtered and will start the process from the kaiju taxonomic classification step.
-
-* -z - Optional argument to specify the number of parallel threads for the taxonomic classification. Default=1
-* -d - Optional argument to specify the path to the kaiju databse for the taxonomic classification. Default=kaiju_db_nr_euk.fmi
-* -k - Mandatory argument to specify if files are paired end (pe), single end (se) or both (pe_se)
-* -g - Mandatory argument to specify the taxonomic group to analyze (either Bacteria and/or Archaea or Eukaryota or Viruses). Names must be provided with the first letter in uppercase
-
 Example paired end files: paired_end/fastp/sample1_1.fastp.fastq.gz, paired_end/fastp/sample1_2.fastp.fastq.gz, paired_end/fastp/sample2_1.fastp.fastq.gz, paired_end/fastp/sample2_2.fastp.fastq.gz  
 Example single end files: single_end/fastp/sample1.fastp.fastq.gz, single_end/fastp/sample2.fastp.fastq.gz  
 NOTE: Single end files name must not have _1 or _2 suffix before .fastp.fastq.gz extension. Otherwise the script will wet very confused 
 NOTE: Input files must be within a paired_end/fastp/ or single_end/fastp/ directory, respectively
 
-### Starting from kaiju.out files:
+### Whole process starting from creation of phyloseq OTU and TAX tables from taxonomic classification tables:
 ```{bash, eval=FALSE, echo=TRUE}
-comets -t pe|se|pe_se -g Prokaryotes|Bacteria|Archaea|Eukaryota|Viruses
+comets -p pe|se|pe_se -t -g All|Prokaryotes|Bacteria|Archaea|Eukaryota|Viruses -r
 ```
-This mode will assume that taxonomic classification is already done and will start the process from the kaiju2table classification summary.
-
-* -t - Mandatory argument to specify if files are paired end (pe), single end (se) or both (pe_se)
-* -g - Mandatory argument to specify the taxonomic group to analyze (either Bacteria and/or Archaea or Eukaryota or Viruses). Names must be provided with the first letter in uppercase
-
-Example paired end files: paired_end/fastp/kaiju/sample1.kaiju.out, paired_end/fastp/kaiju/sample2.kaiju.out  
-Example single end files:  single_end/fastp/kaiju/sample1.kaiju.out,  single_end/fastp/kaiju/sample2.kaiju.out  
-NOTE: Input files must be within a paired_end/fastp/kaiju/ or single_end/fastp/kaiju/ directory, respectively
-
-### Starting from classification summary tables.kaiju.tsv:
-```{bash, eval=FALSE, echo=TRUE}
-comets -g Prokaryotes|Bacteria|Archaea|Eukaryota|Viruses
-```
-This mode will assume that classification summary tables exist and will start the process from the taxonomic group table formatting to produce taxonomic group specific phyloseq tables. The user can loop this step with any of the valid options to get the phyloseq tables and plots for all taxonomic groups. If all phyloseq tables are already made and want to proceed only to plot generation the user must specify which taxonomic group to plot.
-
-* -g - Mandatory argument to specify the taxonomic group to analyze (either Bacteria and/or Archaea or Eukaryota or Viruses). Names must be provided with the first letter in uppercase
-
 Example input files: kaiju2table/sample1.kaiju.tsv, kaiju2table/sample2.kaiju.tsv  
 NOTE: Input files must be within a kaiju2table/ directory  
+
+### Whole process starting from creation of R plots from phyloseq objects:
+```{bash, eval=FALSE, echo=TRUE}
+comets -p pe|se|pe_se -g All|Prokaryotes|Bacteria|Archaea|Eukaryota|Viruses -r
+```
 NOTE: comets_plots.R will save final dataframes as .RData files to phyloseq_tables directory. These can be loaded in RStudio with load("filename.RData") for custom processing
+
+## Options:
+* -h: help message
+* -p: paired-end (pe), single-end (se), or both (pe_se). Always needed
+* -f: path to fastp (if "auto", will automatically look for fastp in ~/, which may take a while. If option is not provided, will not run fastp quality filter)
+* -k: path to kaiju-multi (if "auto", will automatically look for kaiju-multi, kaiju2table, nodes.dmp and names.dmp in ~/, which may take a while. If path provided, will also need to provide -K, -n, and -N. If option is not provided, will not run kaiju taxonomic assignment)
+* -z: number of threads to use for kaiju taxonomic assignment (recomendation is 25 if server has enough cores. If option is not provided will use default: 1)
+* -d: path to kaiju database (if option is not provided will automatically look for kaiju_db_nr_euk.fmi in ~/, which may take a while)
+* -K: path to kaiju2table (needed if -k path is provided)
+* -n: path to nodes.dmp (needed if -k path is provided)
+* -N: path to names.dmp (needed if -k path is provided)
+* -t: create phyloseq tables (no arguments needed. If provided, will also need to provide -g. If option is not provided, will not create phyloseq tables)
+* -g: taxonomic group to create phyloseq tables for (Options are All, Prokaryotes, Bacteria, Archaea, Eukaryota, Viruses. Needed if -t or -r is provided)
+* -r: create R plots (no arguments needed. If provided, will also need to provide -g. If option is not provided, will not create R plots)
 
 Example output tree structure of a full process:
 ```{bash, eval=FALSE, echo=TRUE}
