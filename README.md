@@ -81,7 +81,7 @@ NOTE: comets_plots.R will save final dataframes as .RData files to phyloseq_tabl
 * -f: path to fastp (if "auto", will automatically look for fastp in ~/, which may take a while. If option is not provided, will not run fastp quality filter)
 * -k: path to kaiju-multi (if "auto", will automatically look for kaiju-multi, kaiju2table, nodes.dmp and names.dmp in ~/, which may take a while. If path provided, will also need to provide -K, -n, and -N. If option is not provided, will not run kaiju taxonomic assignment)
 * -z: number of threads to use for kaiju taxonomic assignment (recomendation is 25 if server has enough cores. If option is not provided will use default: 1)
-* -d: path to kaiju database (if option is not provided will automatically look for kaiju_db_nr_euk.fmi in ~/, which may take a while)
+* -d: path to kaiju database (if option is not provided will automatically look for kaiju_db_nr_euk.fmi in ~/, which may take a while. Please note that a minimum of approximately 130Gb of memory is required to run against the nr_euk database)
 * -K: path to kaiju2table (needed if -k path is provided)
 * -n: path to nodes.dmp (needed if -k path is provided)
 * -N: path to names.dmp (needed if -k path is provided)
