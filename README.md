@@ -35,7 +35,10 @@ If necessary change the first line of comets_plots.R for the actual Rscript path
 
 ## Usage:
 IMPORTANT NOTE: Before starting any process including -r option please provide a file named phyloseq_tables/SAM.table. This is a tab separated metadata table to be loaded by phyloseq. It must contain at least three columns: Files, Sample and SampleType  
-Samples must be listed in alphabetical order (as in a simple ls and sort listing of files). Example: If you want to compare sample1 (paired end, seawater) and sample2 (single end freshwater) you will have three fastq.gz files (sample1_1.fastq.gz, sample1_2.fastq.gz and sample2.fastq.gz). The SAM.table within the phyloseq_tables/ directory should look like this:
+
+Samples must be listed in alphabetical order (as in a simple ls and sort listing of files). 
+
+Example: If you want to compare sample1 (paired end, seawater) and sample2 (single end freshwater) you will have three fastq.gz files (sample1_1.fastq.gz, sample1_2.fastq.gz and sample2.fastq.gz). The SAM.table within the phyloseq_tables/ directory should look like this:
 
 Files|Sample|SampleType
 --|--|--
