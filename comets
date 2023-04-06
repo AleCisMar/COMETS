@@ -7,28 +7,28 @@ usage () {
 	echo "COMETS (COmpare METagenomeS)"
 	echo
 	echo "Usage:"
-    echo "       comets -p pe|se|pe_se -f auto|<path_to_fastp> -k auto|<path_to_kaiju-multi> [-z <int>] [-d <path_to_kaiju_db>] [-K <path_to_kaiju2table>] [-n <path_to_nodes.dmp>] [-N <path_to_names.dmp>] -t -g All|Prokaryotes|Bacteria|Archaea|Eukaryota|Viruses -r"
-    echo
-    echo "Example:"
-    echo "       comets -p pe -f auto -k auto -z 25 -t -g All -r"
-    echo
-    echo "The above example will run COMETS with paired-end reads, starting with fastp quality filter (will automatically find the path to fastp), followed by kaiju taxonomic assignment (will automatically find the"
-    echo "path to kaiju-multi, kaiju2table, nodes.dmp and names.dmp) using 25 threads and the default kaiju database (kaiju_db_nr_euk.fmi), the creation of phyloseq tables for all taxonomic groups and the creation of R plots"
-    echo
-    echo "Options:"
-    echo "       -h: help message"
-    echo "       -p: paired-end (pe), single-end (se), or both (pe_se). Always needed"
-    echo "       -f: path to fastp (if "auto", will automatically look for fastp in ~/, which may take a while. If option is not provided, will not run fastp quality filter)"
-    echo "       -k: path to kaiju-multi (if "auto", will automatically look for kaiju-multi, kaiju2table, nodes.dmp and names.dmp in ~/, which may take a while."
-    echo "           If path provided, will also need to provide -K, -n, and -N. If option is not provided, will not run kaiju taxonomic assignment)"
-    echo "       -z: number of threads to use for kaiju taxonomic assignment (recomendation is 25 if server has enough cores. If option is not provided will use default: 1)"
-    echo "       -d: path to kaiju database (if option is not provided will automatically look for kaiju_db_nr_euk.fmi in ~/, which may take a while)"
-    echo "       -K: path to kaiju2table (needed if -k path is provided)"
-    echo "       -n: path to nodes.dmp (needed if -k path is provided)"
-    echo "       -N: path to names.dmp (needed if -k path is provided)"
-    echo "       -t: create phyloseq tables (no arguments needed. If provided, will also need to provide -g. If option is not provided, will not create phyloseq tables)"
-    echo "       -g: taxonomic group to create phyloseq tables for (Options are All, Prokaryotes, Bacteria, Archaea, Eukaryota, Viruses. Needed if -t or -r is provided)"
-    echo "       -r: create R plots (no arguments needed. If provided, will also need to provide -g. If option is not provided, will not create R plots)"
+	echo "       comets -p pe|se|pe_se -f auto|<path_to_fastp> -k auto|<path_to_kaiju-multi> [-z <int>] [-d <path_to_kaiju_db>] [-K <path_to_kaiju2table>] [-n <path_to_nodes.dmp>] [-N <path_to_names.dmp>] -t -g All|Prokaryotes|Bacteria|Archaea|Eukaryota|Viruses -r"
+	echo
+	echo "Example:"
+	echo "       comets -p pe -f auto -k auto -z 25 -t -g All -r"
+	echo
+	echo "The above example will run COMETS with paired-end reads, starting with fastp quality filter (will automatically find the path to fastp), followed by kaiju taxonomic assignment (will automatically find the"
+	echo "path to kaiju-multi, kaiju2table, nodes.dmp and names.dmp) using 25 threads and the default kaiju database (kaiju_db_nr_euk.fmi), the creation of phyloseq tables for all taxonomic groups and the creation of R plots"
+	echo
+	echo "Options:"
+	echo "       -h: help message"
+	echo "       -p: paired-end (pe), single-end (se), or both (pe_se). Always needed"
+	echo "       -f: path to fastp (if "auto", will automatically look for fastp in ~/, which may take a while. If option is not provided, will not run fastp quality filter)"
+	echo "       -k: path to kaiju-multi (if "auto", will automatically look for kaiju-multi, kaiju2table, nodes.dmp and names.dmp in ~/, which may take a while."
+	echo "           If path provided, will also need to provide -K, -n, and -N. If option is not provided, will not run kaiju taxonomic assignment)"
+	echo "       -z: number of threads to use for kaiju taxonomic assignment (recomendation is 25 if server has enough cores. If option is not provided will use default: 1)"
+	echo "       -d: path to kaiju database (if option is not provided will automatically look for kaiju_db_nr_euk.fmi in ~/, which may take a while)"
+	echo "       -K: path to kaiju2table (needed if -k path is provided)"
+	echo "       -n: path to nodes.dmp (needed if -k path is provided)"
+	echo "       -N: path to names.dmp (needed if -k path is provided)"
+	echo "       -t: create phyloseq tables (no arguments needed. If provided, will also need to provide -g. If option is not provided, will not create phyloseq tables)"
+	echo "       -g: taxonomic group to create phyloseq tables for (Options are All, Prokaryotes, Bacteria, Archaea, Eukaryota, Viruses. Needed if -t or -r is provided)"
+	echo "       -r: create R plots (no arguments needed. If provided, will also need to provide -g. If option is not provided, will not create R plots)"
 }
 
 ############################################################################## OPTIONS ##############################################################################
@@ -173,6 +173,13 @@ while getopts "hp:f:k:z:d:K:n:N:tg:r" opt; do
         r)
         r=true
         echo "r: R plots activated"
+		if [[ $(find ~/ -name comets_plots.R | head -n1) ]]; then
+			comets_plots=$(find ~/ -name comets_plots.R | head -n1)
+			echo "comets_plots.R found! Location: $comets_plots"
+		else
+			echo "ERROR: unable to find comets_plots.R"
+			exit 1
+		fi
         ;;
         \?)
         echo "Invalid option: -$OPTARG" >&2
@@ -403,11 +410,12 @@ phyloseq_tables () {
 }
 
 comets_R (){
-    if [[ -z ${t+x} ]]; then
-        cd phyloseq_tables
-    fi
+	if [[ -z ${t+x} ]]; then
+		cd phyloseq_tables
+	fi
+
 	echo "Starting drawing $group plots"
-	comets_plots.R "$group"_OTU.table "$group"_TAX.table SAM.table 2> comets_plots.err
+	comets_plots "$group"_OTU.table "$group"_TAX.table SAM.table 2> comets_plots.err
 	echo "Done drawing $group plots"
 }
 
