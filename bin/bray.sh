@@ -2,6 +2,14 @@
 #
 #Usage: ./bray.sh otuTable.csv
 #
+# In the above case output will be: 
+#
+#otu_matrix.txt -> lower diagonoal bray-curtis dissimilarity matrix
+#otu.input -> input parameters for UPGMA tree
+#otu_screen.out -> output paramters for UPGMA tree
+#otu_matrix.out -> UPGMA tree report
+#otu_matrix.tree -> UPGMA tree in newick format
+#
 # This script is inteded to perform a bary-curtis dissimilarity matrix calculation between all pairs of metagenomes. When the matrix is ready the script
 #will automatically use the matrix to represent the distances with a UPGMA tree. The input table can be derived from the OTU.table, however the table must
 #be comma (,) delimited and have a header consisting of an empty first cell (deleting first column name) followed by all the samples names.
