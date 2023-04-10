@@ -1,11 +1,12 @@
 #!/bin/bash
 #
-#Usage: ./bray.sh OTU_table.csv
+#Usage: ./bray.sh otuTable.csv
 #
 # This script is inteded to perform a bary-curtis dissimilarity matrix calculation between all pairs of metagenomes. When the matrix is ready the script
 #will automatically use the matrix to represent the distances with a UPGMA tree. The input table can be derived from the OTU.table, however the table must
-#be comma (,) delimited and have a header consisting of an empty first cell followed by all the samples names (in the same order as in the first column).
-#For tree building it requires neighbor from the phylip package (https://evolution.genetics.washington.edu/phylip.html).
+#be comma (,) delimited and have a header consisting of an empty first cell (deleting first column name) followed by all the samples names.
+#
+# For tree building it requires neighbor from the phylip package (https://evolution.genetics.washington.edu/phylip.html).
 #
 #
 n=$(head -n1 $1 | tr -s ',' '\n' | wc -l | tr -d ' ')
