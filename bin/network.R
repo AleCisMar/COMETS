@@ -1,6 +1,8 @@
-#This script represents an example of alternative processing for the bray-curtis dissimilarity matrix resulting from bray.sh script. 
+# This script represents an example of alternative processing for the bray-curtis dissimilarity matrix resulting from bray.sh script. The input file
+#can be derived from otu_matrix.txt, however it must have a header with an empty first cell folowed by all sample names (in the same order as in the 
+#first column), and the diagonal must be filled with 0s.
 
-otu_df <- read.delim("/path/to/otu_matrix.txt", check.names = F, row.names = 1)
+otu_df <- read.delim("/path/to/otu_matrix_net.txt", check.names = F, row.names = 1)
 #otu_df <- otu_df[1:(length(otu_df)-1)]
 otu_df_mat <- as.matrix(otu_df)
 otu_df_mat_sym <- as.matrix(Matrix::forceSymmetric(otu_df_mat,uplo="L"))
