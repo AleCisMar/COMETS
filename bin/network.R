@@ -1,6 +1,6 @@
 #This script represents an example of alternative processing for the bray-curtis dissimilarity matrix resulting from bray.sh script. 
 
-species_df <- read.delim("/Volumes/TOSHIBA EXT/DomosArqueano/figuras/bray_new/network/species_matrix.txt", check.names = F, row.names = 1)
+species_df <- read.delim("/path/to/otu_matrix.txt", check.names = F, row.names = 1)
 species_df <- species_df[1:(length(species_df)-1)]
 species_df_mat <- as.matrix(species_df)
 species_df_mat_sym <- as.matrix(Matrix::forceSymmetric(species_df_mat,uplo="L"))
